@@ -60,8 +60,16 @@ app.use(badJSONHandler);
 app.use(compression());
 
 // Enable CORS with specified options
-app.use(cors(config.cors.corsOptions));
+// app.use(cors(config.cors.corsOptions));
 
+// In development Phase
+app.use(
+  cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 // app.use(
 //   session({
 //     secret: process.env.GOOGLE_CLIENT_SECRET,
