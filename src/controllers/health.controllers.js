@@ -2,7 +2,7 @@ const statusCodes = require("../utils/httpStatus");
 const catchAsync = require("../utils/catchAsync");
 const { sendErrorResponse } = require("../utils/failure");
 const { sendSuccessResponse } = require("../utils/success");
-const healthData = require("./healthData");
+const healthData = require("../../uploads/demoData/healthData");
 
 const getHealthBySlug = catchAsync(async (req, res) => {
   const { slug } = req.params;

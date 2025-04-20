@@ -3,6 +3,20 @@ const config = require("../config");
 const { ApiError } = require("../utils/ApiError");
 const statusCodes = require("../utils/httpStatus");
 
+const generateTokens = (userId) => {
+  const accessPayload = { id: userId, type: config.jwt.tokenTypes.ACCESS };
+  const refreshPayload = { id: userId, type: config.jwt.tokenTypes.REFRESH };
+
+  const accessToken = generateToken(accessPayload, config.jwt.accessExpiration);
+
+  const refreshToken = generateToken(
+    refreshPayload,
+    config.jwt.refreshExpiration,
+    config.jwt.refreshSecret
+  );
+
+  return { accessToken, refreshToken };
+};
 const generateToken = (
   payloadData,
   expiresIn = config.jwt.defaultExpiration,
@@ -25,6 +39,7 @@ const verifyToken = (token, secret = config.jwt.jwtSecret) => {
 };
 
 module.exports = {
+  generateTokens,
   generateToken,
   verifyToken,
 };

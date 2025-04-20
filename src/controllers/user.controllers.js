@@ -15,7 +15,7 @@ const { hashPassword, verifyPassword } = require("../utils/passwordEncoding");
 const { sendSuccessResponse } = require("../utils/success");
 
 const registerUser = catchAsync(async (req, res) => {
-  const { name, username, email, password, phone_number, age } = req.body;
+  const { email, password } = req.body;
 
   const existingUser = await userServices.findUserByEmail(email);
   if (existingUser) {
@@ -26,60 +26,20 @@ const registerUser = catchAsync(async (req, res) => {
     );
   }
 
-  if (!username) {
-    return sendErrorResponse(
-      statusCodes.BAD_REQUEST,
-      res,
-      "provide the username"
-    );
-  }
-
-  const existingUserByUsername =
-    await userServices.findUserByUsername(username);
-
-  if (existingUserByUsername) {
-    return sendErrorResponse(
-      statusCodes.BAD_REQUEST,
-      res,
-      "Username already exists Choose Another username"
-    );
-  }
-
   const hashedPassword = await hashPassword(password);
   const newUser = await userServices.createUser({
-    name,
-    username,
     email,
     password: hashedPassword,
-    phone_number,
-    age,
   });
-  const payload = {
-    id: newUser.id,
-    type: config.jwt.tokenTypes.ACCESS,
-  };
-
-  const accessToken = tokenServices.generateToken(
-    payload,
-    config.jwt.accessExpiration
-  );
-
-  const refreshPayload = {
-    ...payload,
-    type: config.jwt.tokenTypes.REFRESH,
-  };
-
-  const refreshToken = tokenServices.generateToken(
-    refreshPayload,
-    config.jwt.refreshExpiration,
-    config.jwt.refreshSecret
+  const { accessToken, refreshToken } = tokenServices.generateTokens(
+    newUser.id
   );
 
   addCookie(refreshToken, res);
 
   const response = {
     id: newUser.id,
-    name: newUser.email,
+    email: newUser.email,
     accessToken,
   };
 
@@ -92,40 +52,16 @@ const registerUser = catchAsync(async (req, res) => {
 });
 
 const loginUser = catchAsync(async (req, res) => {
-  const { email, username, password } = req.body;
+  const { email, password } = req.body;
 
-  if (!email && !username) {
-    return sendErrorResponse(
-      statusCodes.BAD_REQUEST,
-      res,
-      "Email or username is required"
-    );
+  if (!email) {
+    return sendErrorResponse(statusCodes.BAD_REQUEST, res, "Email is required");
   }
 
-  const user = email
-    ? await userServices.findUserByEmail(email)
-    : await userServices.findUserByUsername(username);
+  const user = await userServices.findUserByEmail(email);
 
   if (!user) {
-    return sendErrorResponse(statusCodes.NOT_FOUND, res, "User not found");
-  }
-
-  if (!user.password) {
-    const provider = user.googleId
-      ? "Google"
-      : user.facebookId
-        ? "Facebook"
-        : user.githubId
-          ? "GitHub"
-          : null;
-
-    if (provider) {
-      return sendErrorResponse(
-        statusCodes.CONFLICT,
-        res,
-        `It looks like you signed up using ${provider}. Please log in with ${provider} or reset your password to set one.`
-      );
-    }
+    return sendErrorResponse(statusCodes.NOT_FOUND, res, "Email not found");
   }
 
   const isMatch = await verifyPassword(password, user.password);
@@ -137,40 +73,21 @@ const loginUser = catchAsync(async (req, res) => {
     );
   }
 
-  const payload = {
-    id: user.id,
-    type: config.jwt.tokenTypes.ACCESS,
-  };
-
-  const accessToken = tokenServices.generateToken(
-    payload,
-    config.jwt.accessExpiration
-  );
-
-  const refreshPayload = {
-    ...payload,
-    type: config.jwt.tokenTypes.REFRESH,
-  };
-
-  const refreshToken = tokenServices.generateToken(
-    refreshPayload,
-    config.jwt.refreshExpiration,
-    config.jwt.refreshSecret
-  );
+  const { accessToken, refreshToken } = tokenServices.generateTokens(user.id);
 
   addCookie(refreshToken, res);
 
   const response = {
     id: user.id,
-    name: user.name,
+    email: user.email,
     accessToken,
   };
 
-  await emailService.sendEmail(
-    user.email,
-    "Login Successful",
-    emailTemplates.loginSuccess(user)
-  );
+  // await emailService.sendEmail(
+  //   user.email,
+  //   "Login Successful",
+  //   emailTemplates.loginSuccess(user)
+  // );
 
   return sendSuccessResponse(statusCodes.OK, res, "Login successful", response);
 });
