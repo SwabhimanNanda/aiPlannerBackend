@@ -2,7 +2,6 @@ const logger = require("../../config/logger.config");
 const { Sequelize, DataTypes } = require("sequelize");
 const { dbConfig } = require("../../config/dbconfig");
 const UserModel = require("./user.models");
-console.log(dbConfig);
 
 const sequelize = new Sequelize(
   dbConfig.database,
