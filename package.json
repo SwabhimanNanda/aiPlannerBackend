@@ -16,7 +16,18 @@
     "pm2:stop": "pm2 stop src/app.js",
     "pm2:delete": "pm2 delete src/app.js",
     "pm2:watch": "pm2 start event-backend --watch",
-    "swagger": "node ./swagger.js"
+    "swagger": "node ./swagger.js",
+    "init": "npx sequelize-cli init",
+    "db:create": "npx sequelize-cli db:create",
+    "db:drop": "npx sequelize-cli db:drop",
+    "db:migrate": "npx sequelize-cli db:migrate",
+    "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
+    "db:migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
+    "db:seed": "npx sequelize-cli db:seed:all",
+    "db:seed:undo": "npx sequelize-cli db:seed:undo:all",
+    "model": "npx sequelize-cli model:generate",
+    "migration": "npx sequelize-cli migration:generate",
+    "seed": "npx sequelize-cli seed:generate"
   },
   "keywords": [],
   "author": "",
@@ -57,5 +68,8 @@
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
     "yamljs": "^0.3.0"
+  },
+  "devDependencies": {
+    "sequelize-cli": "^6.6.2"
   }
 }

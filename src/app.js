@@ -1,4 +1,5 @@
 const http = require("http");
+const db = require("./db/models");
 const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
@@ -65,9 +66,9 @@ app.use(compression());
 // In development Phase
 app.use(
   cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 // app.use(
@@ -116,7 +117,7 @@ app.use(errorHandler);
 
 //For Socket
 // require("./utils/socket")(io);
-
+db.init();
 // For local development, you might still want to call app.listen()
 server.listen(config.port, () => {
   logger.info(`Listening on port ${config.port}`);
