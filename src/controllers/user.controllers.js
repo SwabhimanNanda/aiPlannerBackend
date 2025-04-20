@@ -67,7 +67,7 @@ const loginUser = catchAsync(async (req, res) => {
   const isMatch = await verifyPassword(password, user.password);
   if (!isMatch) {
     return sendErrorResponse(
-      statusCodes.UNAUTHORIZED,
+      statusCodes.BAD_REQUEST,
       res,
       "Invalid credentials"
     );
