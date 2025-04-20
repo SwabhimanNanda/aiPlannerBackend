@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { userControllers, userTempControllers } = require("../controllers");
+const { userControllers } = require("../controllers");
 
 const {
   otpLimiter,
@@ -19,13 +19,9 @@ const {
 const validate = require("../validations/validateRequest.validations");
 
 // Routes
-router.post(
-  "/register",
-  validate(signupSchema),
-  userTempControllers.registerUser
-);
-router.post("/verifyOtp", userTempControllers.verifyOtp);
-router.post("/resend-otp", otpLimiter, userTempControllers.resendOtp);
+router.post("/register", validate(signupSchema), userControllers.registerUser);
+// router.post("/verifyOtp", userTempControllers.verifyOtp);
+// router.post("/resend-otp", otpLimiter, userTempControllers.resendOtp);
 router.post(
   "/login",
   loginLimiter,

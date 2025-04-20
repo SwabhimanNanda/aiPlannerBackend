@@ -96,6 +96,33 @@ module.exports = {
   verifyCaptcha: {
     capthaSecretKey: process.env.secretKey,
   },
+  db: {
+    username:
+      process.env.NODE_ENV === "development"
+        ? process.env.DEV_DB_USERNAME
+        : process.env.PROD_DB_USERNAME,
+    password:
+      process.env.NODE_ENV === "development"
+        ? process.env.DEV_DB_PASSWORD
+        : process.env.PROD_DB_PASSWORD,
+    database:
+      process.env.NODE_ENV === "development"
+        ? process.env.DEV_DB_NAME
+        : process.env.PROD_DB_NAME,
+    host:
+      process.env.NODE_ENV === "development"
+        ? process.env.DEV_DB_HOST
+        : process.env.PROD_DB_HOST,
+    port:
+      process.env.NODE_ENV === "development"
+        ? process.env.DEV_DB_PORT
+        : process.env.PROD_DB_PORT,
+    dialect:
+      process.env.NODE_ENV === "development"
+        ? process.env.DEV_DB_DIALECT
+        : process.env.PROD_DB_DIALECT,
+  },
+
   pagination: {
     min_page_size: 5,
     max_page_size: 50,
