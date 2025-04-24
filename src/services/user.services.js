@@ -20,8 +20,6 @@ const findUserById = async (id) => {
 };
 
 const findUserByEmail = async (email) => {
-  console.log(email);
-
   return await User.findOne({
     where: { email },
     // attributes: { include: ['password'] } // Assuming password is excluded by default
