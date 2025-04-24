@@ -1,39 +1,103 @@
 const statusCodes = require("../utils/httpStatus");
 const catchAsync = require("../utils/catchAsync");
-const { sendErrorResponse } = require("../utils/failure");
 const { sendSuccessResponse } = require("../utils/success");
-const healthData = require("../../uploads/demoData/healthData");
+const { sendErrorResponse } = require("../utils/failure");
+const { healthServices } = require("../services");
+const createHealth = catchAsync(async (req, res) => {
+  const user_id = req.user.dataValues.id;
+  const {
+    date,
+    bpm = 0,
+    calories = null,
+    steps = null,
+    waterIntake = null,
+    nutrition = { carbs: 0, protein: 0, fats: 0 },
+    sleep = { duration: 0, bedTime: null, wakeupTime: null, quality: null },
+    note = null,
+  } = req.body;
 
-const getHealthBySlug = catchAsync(async (req, res) => {
-  const { slug } = req.params;
-  const slugNumber = Number(slug);
+  const metricData = {
+    date,
+    bpm,
+    calories,
+    steps,
+    waterIntake,
+    nutrition,
+    sleep,
+    note,
+  };
+  const newMetric = await healthServices.createOrUpdateMetric(
+    user_id,
+    metricData
+  );
+  return sendSuccessResponse(
+    statusCodes.CREATED,
+    res,
+    "Health Data saved successfully",
+    newMetric
+  );
+});
+
+const getAllHealthData = catchAsync(async (req, res) => {
+  const user = req.user;
+  const metrics = await user.getHealthMetric({
+    order: [["date", "DESC"]],
+  });
+
+  return sendSuccessResponse(
+    statusCodes.OK,
+    res,
+    "Health metrics fetched successfully",
+    metrics
+  );
+});
+
+const getHealthDataByTimePeriodAndField = async (req, res) => {
+  const { period, fields, from, to, limit = 10, offset = 0, sort } = req.query;
+  const user = req.user;
+
   try {
-    const result = healthData.find((entry) => entry.slug == slugNumber);
+    const attributes = fields
+      ? fields.split(",").map((f) => f.trim())
+      : undefined;
 
-    if (!result) {
+    const sortOrder = sort
+      ? [sort.split(":")[0], (sort.split(":")[1] || "DESC").toUpperCase()]
+      : ["date", "DESC"];
+
+    const healthData = await healthServices.getHealthDataByPeriod(
+      user.dataValues.id,
+      period,
+      attributes,
+      { from, to, limit, offset, sortOrder }
+    );
+
+    if (!healthData || healthData.length === 0) {
       return sendErrorResponse(
-        statusCodes.CONFLICT,
+        statusCodes.NOT_FOUND,
         res,
-        "Health Data Not Found"
+        "No data found for this period."
       );
     }
 
-    sendSuccessResponse(
+    return sendSuccessResponse(
       statusCodes.OK,
       res,
-      "User created successfully",
-      result
+      "Health data fetched successfully",
+      healthData
     );
   } catch (error) {
     return sendErrorResponse(
-      statusCodes.NOT_FOUND,
+      statusCodes.INTERNAL_SERVER_ERROR,
       res,
-      "Error reading health data",
+      "Please Try Again Later",
       error
     );
   }
-});
+};
 
 module.exports = {
-  getHealthBySlug,
+  createHealth,
+  getAllHealthData,
+  getHealthDataByTimePeriodAndField,
 };

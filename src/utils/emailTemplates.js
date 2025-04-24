@@ -1,4 +1,4 @@
-const APP_NAME = "Qube";
+const APP_NAME = "AiPlanner";
 const APP_URL = "https://glintqube.vercel.app/";
 const LOGO_URL =
   "https://res.cloudinary.com/dsvtqbsea/image/upload/t_reducedDimension/vpf02nji60ba2ht7ujdn";
@@ -77,7 +77,7 @@ const emailTemplates = {
     ${emailTemplates.header}
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border-radius: 8px; background: #f9f9f9;">
       <h2 style="color: #007BFF;">Welcome to ${APP_NAME}!</h2>
-      <p>Hi <strong>${user.name || "User"}</strong>,</p>
+      <p>Hi <strong>${"User"}</strong>,</p>
       <p>Thank you for registering with us! Your account has been created successfully.</p>
       <p>We are excited to have you on board.</p>
       ${emailTemplates.footer}

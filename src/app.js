@@ -6,7 +6,7 @@ const cors = require("cors");
 const express = require("express");
 const helmet = require("helmet");
 const passport = require("passport");
-// const { authLimiter } = require("./middlewares/rateLimit.middlewares");
+// const { globalLimiter } = require("./middlewares/rateLimit.middlewares");
 // const session = require("express-session");
 // const { Server } = require("socket.io");
 require("./services/auth/googlePassport");
@@ -24,7 +24,6 @@ const YAML = require("yamljs");
 const config = require("./config");
 const { responseStatuses } = require("./config/constants.config");
 const swaggerDocument = YAML.load("openapi.yml");
-// const runDatabase = require("./db/models");
 const { logger, logRequest } = require("./middlewares/logger.middlewares");
 const statusCodes = require("./utils/httpStatus");
 
@@ -38,7 +37,6 @@ const server = http.createServer(app);
 // });
 // Connect to the database
 // runDatabase();
-
 // Set security HTTP headers
 app.use(helmet());
 
@@ -66,7 +64,7 @@ app.use(compression());
 // In development Phase
 app.use(
   cors({
-    origin: "*",
+    origin: "",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -89,9 +87,9 @@ require("./services/auth/facebookPassport");
 app.set("trust proxy", 1);
 
 // Limit repeated failed requests to auth endpoints in production
-if (config.env === "production") {
-  app.use("/", Routes);
-}
+// if (config.env === "production") {
+//   app.use("/", Routes);
+// }
 
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerDocument));
 
@@ -117,8 +115,13 @@ app.use(errorHandler);
 
 //For Socket
 // require("./utils/socket")(io);
-db.init();
-// For local development, you might still want to call app.listen()
-server.listen(config.port, () => {
-  logger.info(`Listening on port ${config.port}`);
-});
+db.init()
+  .then(() => {
+    server.listen(config.port, () => {
+      logger.info(`Listening on port ${config.port}`);
+    });
+  })
+  .catch((err) => {
+    logger.error("Database connection failed", err);
+    process.exit(1);
+  });

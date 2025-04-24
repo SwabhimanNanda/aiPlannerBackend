@@ -1,4 +1,5 @@
 const bcrypt = require("bcrypt");
+// const {Token} = require("../db/models/")
 const config = require("../config");
 const {
   tokenServices,
@@ -13,17 +14,12 @@ const { sendErrorResponse } = require("../utils/failure");
 const statusCodes = require("../utils/httpStatus");
 const { hashPassword, verifyPassword } = require("../utils/passwordEncoding");
 const { sendSuccessResponse } = require("../utils/success");
-
 const registerUser = catchAsync(async (req, res) => {
   const { email, password } = req.body;
 
   const existingUser = await userServices.findUserByEmail(email);
   if (existingUser) {
-    return sendErrorResponse(
-      statusCodes.BAD_REQUEST,
-      res,
-      "Email already exists"
-    );
+    return sendErrorResponse(statusCodes.CONFLICT, res, "Email already exists");
   }
 
   const hashedPassword = await hashPassword(password);
@@ -37,14 +33,18 @@ const registerUser = catchAsync(async (req, res) => {
 
   addCookie(refreshToken, res);
 
+  await emailService.sendEmail(
+    newUser.email,
+    "Welcome To AI Planner",
+    emailTemplates.registrationSuccess()
+  );
+
   const response = {
-    id: newUser.id,
     email: newUser.email,
     accessToken,
   };
-
   return sendSuccessResponse(
-    statusCodes.OK,
+    statusCodes.CREATED,
     res,
     "User registered successfully",
     response
@@ -54,20 +54,20 @@ const registerUser = catchAsync(async (req, res) => {
 const loginUser = catchAsync(async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email) {
-    return sendErrorResponse(statusCodes.BAD_REQUEST, res, "Email is required");
-  }
-
   const user = await userServices.findUserByEmail(email);
 
   if (!user) {
-    return sendErrorResponse(statusCodes.NOT_FOUND, res, "Email not found");
+    return sendErrorResponse(
+      statusCodes.UNAUTHORIZED,
+      res,
+      "Invalid credentials"
+    );
   }
 
   const isMatch = await verifyPassword(password, user.password);
   if (!isMatch) {
     return sendErrorResponse(
-      statusCodes.BAD_REQUEST,
+      statusCodes.UNAUTHORIZED,
       res,
       "Invalid credentials"
     );
@@ -78,7 +78,6 @@ const loginUser = catchAsync(async (req, res) => {
   addCookie(refreshToken, res);
 
   const response = {
-    id: user.id,
     email: user.email,
     accessToken,
   };
@@ -92,77 +91,80 @@ const loginUser = catchAsync(async (req, res) => {
   return sendSuccessResponse(statusCodes.OK, res, "Login successful", response);
 });
 
-const forgotPassword = catchAsync(async (req, res) => {
-  const { email } = req.body;
+// const forgotPassword = catchAsync(async (req, res) => {
+//   const { email } = req.body;
 
-  const user = await userServices.findUserByEmail(email);
-  if (!user) {
-    return sendErrorResponse(statusCodes.NOT_FOUND, res, "Email not found");
-  }
+//   const user = await userServices.findUserByEmail(email);
+//   if (!user) {
+//     return sendErrorResponse(statusCodes.NOT_FOUND, res, "Email not found");
+//   }
+//   const resetToken = crypto.randomBytes(32).toString("hex");
+//   await Token.create({
+//     token: resetToken,
+//     type: "password_reset",
+//     expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+//   });
+//   // const hashedOtp = await bcrypt.hash(otp.otp_code.toString(), 10);
 
-  const otp = otpServices.generateOtp(config.otp.otpLength);
+//   // await userServices.saveResetOTP(user.id, hashedOtp, otp.expires_at);
 
-  const hashedOtp = await bcrypt.hash(otp.otp_code.toString(), 10);
+//   await emailService.sendEmail(
+//     user.email,
+//     "Here’s Your Password Reset Code",
+//     emailTemplates.passwordResetOTP(user.name, otp.otp_code)
+//   );
 
-  await userServices.saveResetOTP(user.id, hashedOtp, otp.expires_at);
+//   return sendSuccessResponse(statusCodes.OK, res, "OTP sent to your email.");
+// });
 
-  await emailService.sendEmail(
-    user.email,
-    "Here’s Your Password Reset Code",
-    emailTemplates.passwordResetOTP(user.name, otp.otp_code)
-  );
+// const resetPassword = catchAsync(async (req, res) => {
+//   const { email, otp, password } = req.body;
 
-  return sendSuccessResponse(statusCodes.OK, res, "OTP sent to your email.");
-});
+//   const user = await userServices.findUserByEmail(email);
+//   if (!user) {
+//     return sendErrorResponse(statusCodes.NOT_FOUND, res, "User not found");
+//   }
 
-const resetPassword = catchAsync(async (req, res) => {
-  const { email, otp, password } = req.body;
+//   if (!user.resetOTP) {
+//     return sendErrorResponse(
+//       statusCodes.NOT_FOUND,
+//       res,
+//       "No OTP request found."
+//     );
+//   }
 
-  const user = await userServices.findUserByEmail(email);
-  if (!user) {
-    return sendErrorResponse(statusCodes.NOT_FOUND, res, "User not found");
-  }
+//   if (user.otpExpires < new Date()) {
+//     return sendErrorResponse(
+//       statusCodes.BAD_REQUEST,
+//       res,
+//       "OTP has expired. Please request a new one."
+//     );
+//   }
 
-  if (!user.resetOTP) {
-    return sendErrorResponse(
-      statusCodes.NOT_FOUND,
-      res,
-      "No OTP request found."
-    );
-  }
+//   const isOtpValid = await bcrypt.compare(String(otp), user.resetOTP);
+//   if (!isOtpValid) {
+//     return sendErrorResponse(
+//       statusCodes.UNAUTHORIZED,
+//       res,
+//       "Invalid OTP. Please try again."
+//     );
+//   }
 
-  if (user.otpExpires < new Date()) {
-    return sendErrorResponse(
-      statusCodes.BAD_REQUEST,
-      res,
-      "OTP has expired. Please request a new one."
-    );
-  }
+//   const hashedPassword = await bcrypt.hash(password, 10);
+//   await userServices.updateUserPassword(user.id, hashedPassword);
 
-  const isOtpValid = await bcrypt.compare(String(otp), user.resetOTP);
-  if (!isOtpValid) {
-    return sendErrorResponse(
-      statusCodes.UNAUTHORIZED,
-      res,
-      "Invalid OTP. Please try again."
-    );
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-  await userServices.updateUserPassword(user.id, hashedPassword);
-
-  await userServices.clearResetOTP(user.id);
-  await emailService.sendEmail(
-    user.email,
-    "Here’s Your Password Reset Code",
-    emailTemplates.passwordResetSuccess(user.name)
-  );
-  return sendSuccessResponse(
-    statusCodes.OK,
-    res,
-    "Password reset successfully."
-  );
-});
+//   await userServices.clearResetOTP(user.id);
+//   await emailService.sendEmail(
+//     user.email,
+//     "Here’s Your Password Reset Code",
+//     emailTemplates.passwordResetSuccess(user.name)
+//   );
+//   return sendSuccessResponse(
+//     statusCodes.OK,
+//     res,
+//     "Password reset successfully."
+//   );
+// });
 
 const usernameExist = catchAsync(async (req, res) => {
   const { username } = req.body;
@@ -308,8 +310,8 @@ const getNewAccessToken = catchAsync(async (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
-  forgotPassword,
-  resetPassword,
+  // forgotPassword,
+  // resetPassword,
   usernameExist,
   emailVerified,
   emailOtpVerified,

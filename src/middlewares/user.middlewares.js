@@ -3,51 +3,62 @@ const { tokenServices, userServices } = require("../services");
 const catchAsync = require("../utils/catchAsync");
 const { sendErrorResponse } = require("../utils/failure");
 const statusCodes = require("../utils/httpStatus");
+
 const checkUserAuth = catchAsync(async (req, res, next) => {
   let token;
   const authorization = req.headers.authorization || req.cookies.accessToken;
-  if (authorization?.startsWith("Bearer")) {
-    try {
-      token = authorization.split(" ")[1];
-      const decoded = tokenServices.verifyToken(token, config.jwt.jwtSecret);
 
-      const user = await userServices.findUserById(decoded.id);
+  // Check if the authorization token exists and starts with "Bearer"
+  if (!authorization || !authorization.startsWith("Bearer ")) {
+    return sendErrorResponse(
+      statusCodes.UNAUTHORIZED,
+      res,
+      "Token not found or malformed!"
+    );
+  }
 
-      if (!user) {
-        return res.status(statusCodes.UNAUTHORIZED).json({
-          status: "error",
-          code: statusCodes.UNAUTHORIZED,
-          message: "User does not exists!",
-          data: null,
-          stack: null,
-        });
-      }
+  try {
+    // Extract token and verify it
+    token = authorization.split(" ")[1];
+    const decoded = tokenServices.verifyToken(token, config.jwt.jwtSecret);
 
-      req.user = user;
+    // Find the user associated with the token
+    const user = await userServices.findUserById(decoded.id);
+    if (!user) {
+      return res.status(statusCodes.UNAUTHORIZED).json({
+        status: "error",
+        code: statusCodes.UNAUTHORIZED,
+        message: "User does not exist!",
+        data: null,
+        stack: null,
+      });
+    }
 
-      next();
-    } catch (error) {
-      if (error.name === "TokenExpiredError") {
-        return sendErrorResponse(
-          statusCodes.UNAUTHORIZED,
-          res,
-          "Token has expired. Please log in again!"
-        );
-      }
-
+    // Attach the user to the request object
+    req.user = user;
+    next();
+  } catch (error) {
+    // Handle specific JWT errors
+    if (error.name === "TokenExpiredError") {
       return sendErrorResponse(
         statusCodes.UNAUTHORIZED,
         res,
-        "Not authorized, token failed!"
+        "Token has expired. Please log in again!"
       );
     }
-  }
+    if (error.name === "JsonWebTokenError") {
+      return sendErrorResponse(
+        statusCodes.UNAUTHORIZED,
+        res,
+        "Invalid token! Please authenticate again."
+      );
+    }
 
-  if (!token) {
-    sendErrorResponse(
+    // Generic error response
+    return sendErrorResponse(
       statusCodes.UNAUTHORIZED,
       res,
-      "Please authenticate first!"
+      "Not authorized, token failed!"
     );
   }
 });
