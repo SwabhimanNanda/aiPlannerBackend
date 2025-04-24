@@ -4,7 +4,7 @@ const router = express.Router();
 const { userControllers } = require("../controllers");
 
 const {
-  otpLimiter,
+  // otpLimiter,
   loginLimiter,
   // otpRateLimiter,
 } = require("../middlewares/rateLimit.middlewares");
@@ -13,8 +13,8 @@ const checkUserAuth = require("../middlewares/user.middlewares");
 const {
   signupSchema,
   loginSchema,
-  forgotPasswordSchema,
-  resetPasswordSchema,
+  // forgotPasswordSchema,
+  // resetPasswordSchema,
 } = require("../validations/user.validations");
 const validate = require("../validations/validateRequest.validations");
 
@@ -29,18 +29,18 @@ router.post(
   userControllers.loginUser
 );
 
-router.post(
-  "/forgot-password",
-  otpLimiter,
-  validate(forgotPasswordSchema),
-  userControllers.forgotPassword
-);
+// router.post(
+//   "/forgot-password",
+//   otpLimiter,
+//   validate(forgotPasswordSchema),
+//   userControllers.forgotPassword
+// );
 
-router.post(
-  "/reset-password",
-  validate(resetPasswordSchema),
-  userControllers.resetPassword
-);
+// router.post(
+//   "/reset-password",
+//   validate(resetPasswordSchema),
+//   userControllers.resetPassword
+// );
 
 // old Arch to verify the Email
 // router

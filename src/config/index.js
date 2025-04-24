@@ -7,12 +7,7 @@ const rootDir = path.join(__dirname, "..", "..");
 const rootLogsDir = path.join(rootDir, "logs");
 
 //Check the whitelist
-const whitelist = [
-  "http://localhost:5173",
-  "https://event-managment-backend.vercel.app",
-  "https://glintqube.vercel.app",
-  "http://localhost:3001",
-];
+const whitelist = ["http://localhost:5173", "http://localhost:3001"];
 
 module.exports = {
   frontendUrl:

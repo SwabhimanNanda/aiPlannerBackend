@@ -4,3 +4,4 @@ module.exports.tokenServices = require("./token.services");
 module.exports.otpServices = require("./otp.service");
 module.exports.emailService = require("./email.services");
 module.exports.tempService = require("./tempUser.services");
+module.exports.healthServices = require("./health.services");

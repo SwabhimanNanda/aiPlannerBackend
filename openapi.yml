@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
-  title: qube
+  title: AiPlannerBackend
   version: 1.0.0
   description: My API Description
 
 servers:
   - url: http://localhost:3001
     description: Local development server
-  - url: https://event-management-backend-7l8t.onrender.com
+  - url: https://aiplannerbackend.onrender.com
     description: Production server
 
 paths:
@@ -15,8 +15,8 @@ paths:
     post:
       tags:
         - Authentication
-      summary: Register a new user (creates temporary user pending verification)
-      description: Creates a new user in the temporary database and sends an OTP for email verification
+      summary: Register a new user
+      description: Registers a user with email and password, and returns an access token and refresh token.
       requestBody:
         required: true
         content:
@@ -24,8 +24,8 @@ paths:
             schema:
               $ref: "#/components/schemas/UserRegistration"
       responses:
-        "200":
-          description: User registered successfully, OTP sent to email
+        "201":
+          description: User registered successfully
           content:
             application/json:
               schema:
@@ -36,116 +36,22 @@ paths:
                     example: success
                   code:
                     type: number
-                    example: 200
+                    example: 201
                   message:
                     type: string
-                    example: User registered successfully. Please verify your email.
+                    example: User registered successfully
                   data:
-                    $ref: "#/components/schemas/TempUser"
-        "400":
-          description: Bad request - Email already exists or username taken
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /user/verifyOtp:
-    post:
-      tags:
-        - Authentication
-      summary: Verify OTP for email confirmation
-      description: Verifies the OTP sent to user's email, creates permanent user account if valid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-                - otp
-              properties:
-                userId:
-                  type: string
-                  description: ID of the temporary user
-                otp:
-                  type: string
-                  description: One-time password sent to user's email
-      responses:
-        "200":
-          description: OTP verified successfully, account has been created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: OTP verified successfully, and account has been created.
-                  data:
-                    $ref: "#/components/schemas/User"
-        "400":
-          description: Invalid OTP or too many failed attempts
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          description: User not found or OTP expired
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                        format: email
+                        description: User's email address
+                      accessToken:
+                        type: string
+                        description: JWT access token
         "409":
-          description: Email already exists
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /user/resend-otp:
-    post:
-      tags:
-        - Authentication
-      summary: Resend OTP to user's email
-      description: Generates a new OTP and sends it to the user's email
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-              properties:
-                userId:
-                  type: string
-                  description: ID of the temporary user
-      responses:
-        "200":
-          description: New OTP sent successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: A new OTP has been sent to your email.
-        "404":
-          description: User not found or OTP already verified
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "429":
-          description: Too many requests - Rate limited
+          description: Conflict - Email already exists
           content:
             application/json:
               schema:
@@ -174,254 +80,24 @@ paths:
                   status:
                     type: string
                     example: success
+                  code:
+                    type: number
+                    example: 200
                   message:
                     type: string
                     example: Login successful
                   data:
                     type: object
                     properties:
-                      id:
+                      email:
                         type: string
-                        description: User ID
-                      name:
-                        type: string
-                        description: User's name
+                        format: email
+                        description: User's email address
                       accessToken:
                         type: string
                         description: JWT access token
         "401":
           description: Invalid credentials
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "409":
-          description: User signed up using OAuth (Google, Facebook, Github)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "429":
-          description: Too many login attempts - Rate limited
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /user/forgot-password:
-    post:
-      tags:
-        - Password Management
-      summary: Request password reset
-      description: Sends an OTP to user's email for password reset
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - email
-              properties:
-                email:
-                  type: string
-                  format: email
-                  description: User's email address
-      responses:
-        "200":
-          description: OTP sent to email
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: OTP sent to your email.
-        "404":
-          description: Email not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "429":
-          description: Too many requests - Rate limited
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /user/reset-password:
-    post:
-      tags:
-        - Password Management
-      summary: Reset password with OTP
-      description: Verifies OTP and sets a new password
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - email
-                - otp
-                - password
-              properties:
-                email:
-                  type: string
-                  format: email
-                  description: User's email address
-                otp:
-                  type: string
-                  description: One-time password received via email
-                password:
-                  type: string
-                  format: password
-                  description: New password
-      responses:
-        "200":
-          description: Password reset successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: Password reset successfully.
-        "400":
-          description: Invalid data or expired OTP
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          description: Invalid OTP
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          description: User not found or no OTP request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /user/username-available:
-    post:
-      tags:
-        - User Management
-      summary: Check username availability
-      description: Checks if a username is available for registration
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - username
-              properties:
-                username:
-                  type: string
-                  description: Desired username
-      responses:
-        "200":
-          description: Username is available
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: Username Available
-                  data:
-                    type: string
-                    example: johndoe
-        "400":
-          description: Username not provided
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "409":
-          description: Username not available
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /user/profile:
-    get:
-      tags:
-        - User Management
-      summary: Get user profile information
-      description: Returns all information about the authenticated user
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: User data retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: User Data
-                  data:
-                    $ref: "#/components/schemas/User"
-        "401":
-          description: Unauthorized - Invalid or missing token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /user/refresh_token:
-    post:
-      tags:
-        - Authentication
-      summary: Get new access token
-      description: Uses refresh token (from cookies) to generate a new access token
-      responses:
-        "200":
-          description: New access token generated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  accessToken:
-                    type: string
-                    description: New JWT access token
-        "401":
-          description: Unauthorized - Invalid or expired refresh token
           content:
             application/json:
               schema:
@@ -438,18 +114,9 @@ components:
     UserRegistration:
       type: object
       required:
-        - name
-        - username
         - email
         - password
       properties:
-        name:
-          type: string
-          description: User's full name
-          example: swabhiman
-        username:
-          type: string
-          description: Unique username
         email:
           type: string
           format: email
@@ -458,26 +125,16 @@ components:
           type: string
           format: password
           description: User's password
-
-        phone_number:
-          type: string
-          description: User's phone number (must be exactly 10 digits)
-          pattern: "^[0-9]{10}$"
-          example: "9876543210"
-        age:
-          type: number
-          description: User's age
-
     UserLogin:
       type: object
+      required:
+        - email
+        - password
       properties:
         email:
           type: string
           format: email
           description: User's email address
-        username:
-          type: string
-          description: User's username (alternative to email)
         password:
           type: string
           format: password
@@ -486,59 +143,15 @@ components:
         email: john.doe@example.com
         password: strongpassword
 
-    TempUser:
-      type: object
-      properties:
-        _id:
-          type: string
-          description: Temporary user ID
-        name:
-          type: string
-          description: User's full name
-        username:
-          type: string
-          description: User's username
-        email:
-          type: string
-          description: User's email address
-        phone_number:
-          type: string
-          description: User's phone number
-        age:
-          type: integer
-          description: User's age
-
-    User:
-      type: object
-      properties:
-        id:
-          type: string
-          description: User ID
-        name:
-          type: string
-          description: User's full name
-        username:
-          type: string
-          description: User's username
-        email:
-          type: string
-          description: User's email address
-        phone_number:
-          type: string
-          description: User's phone number
-        age:
-          type: integer
-          description: User's age
-        isEmailVerified:
-          type: boolean
-          description: Whether user's email is verified
-
     Error:
       type: object
       properties:
         status:
           type: string
           example: error
+        code:
+          type: number
+          description: HTTP status code
         message:
           type: string
           description: Error message
