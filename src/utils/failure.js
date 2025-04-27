@@ -6,6 +6,7 @@ module.exports = {
   sendErrorResponse: function (statusCode, res, message, data = null) {
     res.status(statusCode);
     throw new ApiError(statusCode, message, data);
+    
     /* res.status(statusCode).json({
       status: responseStatuses.ERROR,
       code: statusCode,

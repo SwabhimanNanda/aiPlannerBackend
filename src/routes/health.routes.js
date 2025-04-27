@@ -11,5 +11,5 @@ router.get(
   checkUserAuth,
   healthControllers.getHealthDataByTimePeriodAndField
 );
-
+router.get("/home-data", checkUserAuth, healthControllers.getHomeData);
 module.exports = router;

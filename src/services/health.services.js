@@ -32,42 +32,115 @@ const createMetric = async (userId, metricData) => {
   });
 };
 
-const getHealthDataByPeriod = async (
-  user_id,
-  period,
-  attributes,
-  options = {}
-) => {
-  const { from, to, limit, offset, sortOrder } = options;
+// const getHealthDataByPeriod = async (
+//   user_id,
+//   period,
+//   attributes,
+//   options = {}
+// ) => {
+//   const { from, to, limit, offset, sortOrder } = options;
 
-  let startDate, endDate;
-  if (from && to) {
-    startDate = new Date(from);
-    endDate = new Date(to);
-  } else {
-    ({ startDate, endDate } = getDateRange(period));
-  }
+//   let startDate, endDate;
+//   if (from && to) {
+//     startDate = new Date(from);
+//     endDate = new Date(to);
+//   } else {
+//     ({ startDate, endDate } = getDateRange(period));
+//   }
 
-  try {
-    const healthData = await HealthMetric.findAll({
-      where: {
-        user_id,
-        date: {
-          [Op.gte]: startDate,
-          [Op.lte]: endDate,
-        },
+//   try {
+//     const healthData = await HealthMetric.findAll({
+//       where: {
+//         user_id,
+//         date: {
+//           [Op.gte]: startDate,
+//           [Op.lte]: endDate,
+//         },
+//       },
+//       attributes,
+//       order: [sortOrder],
+//       limit: parseInt(limit),
+//       offset: parseInt(offset),
+//     });
+
+//     return healthData;
+//   } catch (error) {
+//     throw new Error("Error fetching health data: " + error.message);
+//   }
+// };
+
+const getHealthDataByPeriod = async (userId, period, attributes) => {
+  const { startDate, endDate } = getDateRange(period);
+
+  return await HealthMetric.findAll({
+    where: {
+      user_id: userId,
+      date: {
+        [Op.gte]: startDate,
+        [Op.lte]: endDate,
       },
-      attributes,
-      order: [sortOrder],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-    });
+    },
+    attributes,
+    order: [["date", "DESC"]],
+  });
+};
 
-    return healthData;
+const getDailyOverview = async (userId) => {
+  try {
+    const data = await HealthMetric.findOne({
+      where: { user_id: userId },
+      order: [["date", "DESC"]],
+      attributes: ["date" , "steps", "calories", "sleep", "bpm", "waterIntake"],
+    });
+    if (data) {
+      const overview = {
+        date:data.date,
+        steps: data.steps,
+        calories: data.calories,
+        bpm: data.bpm,
+        waterIntake: data.waterIntake,
+        sleep: data.sleep ? data.sleep.duration : null,
+      };
+      return overview;
+    }
+
+    return {};
   } catch (error) {
-    throw new Error("Error fetching health data: " + error.message);
+    console.error("Error in getDailyOverview:", error);
+    throw error;
   }
 };
+
+const getWaterIntake = async (userId) => {
+  try {
+    const data = await HealthMetric.findOne({
+      where: { user_id: userId },
+      order: [["date", "DESC"]],
+      attributes: ["waterIntake"],
+    });
+
+    return data || {};
+  } catch (error) {
+    console.error("Error in getWaterIntake:", error);
+    throw error;
+  }
+};
+
+const getNutrition = async (userId) => {
+  try {
+    const data = await HealthMetric.findOne({
+      where: { user_id: userId },
+      order: [["date", "DESC"]],
+      attributes: ["nutrition"],
+    });
+    return data || {};
+  } catch (error) {
+    console.error("Error in getNutrition:", error);
+    throw error;
+  }
+};
+
+
 
 module.exports = {
   getHealthDataByPeriod,
@@ -75,4 +148,7 @@ module.exports = {
   updateMetric,
   createMetric,
   createOrUpdateMetric,
+  getDailyOverview,
+  getWaterIntake,
+  getNutrition
 };
