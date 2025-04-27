@@ -53,51 +53,91 @@ const getAllHealthData = catchAsync(async (req, res) => {
 });
 
 const getHealthDataByTimePeriodAndField = async (req, res) => {
-  const { period, fields, from, to, limit = 10, offset = 0, sort } = req.query;
+  const { period, fields } = req.query;
   const user = req.user;
 
-  try {
-    const attributes = fields
-      ? fields.split(",").map((f) => f.trim())
-      : undefined;
+  let healthData;
+  const attributes = fields
+    ? Array.from(new Set(["date", ...fields.split(",").map((f) => f.trim())]))
+    : undefined;
 
-    const sortOrder = sort
-      ? [sort.split(":")[0], (sort.split(":")[1] || "DESC").toUpperCase()]
-      : ["date", "DESC"];
-
-    const healthData = await healthServices.getHealthDataByPeriod(
+  if (!period) {
+    healthData = await user.getHealthMetric({
+      attributes,
+      order: [["date", "DESC"]],
+    });
+  } else {
+    healthData = await healthServices.getHealthDataByPeriod(
       user.dataValues.id,
       period,
-      attributes,
-      { from, to, limit, offset, sortOrder }
+      attributes
     );
+  }
+  if (healthData.length == 0) {
+    return sendErrorResponse(
+      statusCodes.NOT_FOUND,
+      res,
+      "No data found for this period."
+    );
+  }
+  return sendSuccessResponse(
+    statusCodes.OK,
+    res,
+    "Health data fetched successfully",
+    healthData
+  );
+};
 
-    if (!healthData || healthData.length === 0) {
-      return sendErrorResponse(
-        statusCodes.NOT_FOUND,
-        res,
-        "No data found for this period."
-      );
+const getHomeData = async (req, res) => {
+  const user = req.user;
+  const result = []; // ✅ Array
+
+  try {
+    const [dailyOverviewResult, waterIntakeResult, nutritionResult] = await Promise.allSettled([
+      healthServices.getDailyOverview(user.dataValues.id),
+      healthServices.getWaterIntake(user.dataValues.id),
+      healthServices.getNutrition(user.dataValues.id)
+    ]);
+    
+    if (dailyOverviewResult.status === "fulfilled") {
+      result.push({ key: "dailyOverview", data: dailyOverviewResult.value });
+    } else {
+      console.log("Error fetching daily overview:", dailyOverviewResult.reason);
+    }
+
+    if (waterIntakeResult.status === "fulfilled") {
+      result.push({ key: "waterIntake", data: waterIntakeResult.value });
+    } else {
+      console.log("Error fetching water intake:", waterIntakeResult.reason);
+    }
+
+    if (nutritionResult.status === "fulfilled") {
+      result.push({ key: "nutrition", data: nutritionResult.value });
+    } else {
+      console.log("Error fetching nutrition:", nutritionResult.reason);
     }
 
     return sendSuccessResponse(
       statusCodes.OK,
       res,
       "Health data fetched successfully",
-      healthData
+      result
     );
   } catch (error) {
+    console.log("Unexpected error fetching home data:", error);
     return sendErrorResponse(
-      statusCodes.INTERNAL_SERVER_ERROR,
       res,
-      "Please Try Again Later",
-      error
+      statusCodes.INTERNAL_SERVER_ERROR,
+      "Failed to fetch home data"
     );
   }
 };
+
+
 
 module.exports = {
   createHealth,
   getAllHealthData,
   getHealthDataByTimePeriodAndField,
+  getHomeData
 };
